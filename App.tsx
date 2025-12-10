@@ -49,9 +49,14 @@ function App() {
   }, [loadData]);
 
   // Actions
-  const handleAddEmployee = async (name: string, shift: string, sector: string) => {
+  const handleAddEmployee = async (name: string, shift: string, sector: string, role: string) => {
     setIsSaving(true);
-    const newEmp = await api.createEmployee({ name: name.toUpperCase(), shift, sector: sector.toUpperCase() });
+    const newEmp = await api.createEmployee({ 
+      name: name.toUpperCase(), 
+      shift, 
+      sector: sector.toUpperCase(),
+      role: role 
+    });
     if (newEmp) {
       setEmployees(prev => [...prev, newEmp]);
       setIsModalOpen(false);
@@ -60,7 +65,7 @@ function App() {
   };
 
   const handleDeleteEmployee = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este funcionário?')) {
+    if (window.confirm('Tem certeza que deseja excluir este funcionário permanentemente?')) {
       const success = await api.deleteEmployee(id);
       if (success) {
         setEmployees(prev => prev.filter(e => e.id !== id));
@@ -81,8 +86,6 @@ function App() {
     // Determine next status
     const currentStatus = schedules[key] || '';
     
-    // Logic to auto-fill Sunday only if empty (already handled in render, but for DB we need explicit)
-    // Actually, logic is: click cycles through list.
     const currentIndex = STATUS_LIST.findIndex(s => s.code === currentStatus);
     const nextIndex = (currentIndex + 1) % STATUS_LIST.length;
     const nextStatus = STATUS_LIST[nextIndex].code;
@@ -114,13 +117,9 @@ function App() {
     let absencesMonth = 0;
 
     employees.forEach(emp => {
-      // Check presence today
       const todayKey = `${emp.id}-${todayStr}`;
-      // Note: If today is not in the currently viewed month, this logic might need adjustment,
-      // but for "Visualizing current month stats" based on loaded data:
       if (schedules[todayKey] === 'P') presentToday++;
 
-      // Check absences in loaded month
       for (let d = 1; d <= daysInMonth; d++) {
         const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const key = `${emp.id}-${dStr}`;
@@ -137,7 +136,8 @@ function App() {
     return employees.filter(e => 
       e.name.toLowerCase().includes(lowerTerm) ||
       e.sector.toLowerCase().includes(lowerTerm) ||
-      e.shift.toLowerCase().includes(lowerTerm)
+      e.shift.toLowerCase().includes(lowerTerm) ||
+      (e.role && e.role.toLowerCase().includes(lowerTerm))
     );
   }, [employees, searchTerm]);
 
@@ -170,7 +170,7 @@ function App() {
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
             <input 
               type="text" 
-              placeholder="Buscar por nome, turno ou setor..." 
+              placeholder="Buscar por nome, cargo, turno ou setor..." 
               className="w-full bg-slate-700/50 border-none rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -205,7 +205,8 @@ function App() {
             <thead>
               <tr>
                 <th className="sticky left-0 z-30 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-slate-600 w-[60px]">Turno</th>
-                <th className="sticky left-[60px] z-30 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-r border-slate-600 w-[220px] shadow-[4px_0_8px_rgba(0,0,0,0.3)]">Nome do Funcionário</th>
+                <th className="sticky left-[60px] z-30 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-r border-slate-600 w-[220px] shadow-[4px_0_8px_rgba(0,0,0,0.3)]">Nome</th>
+                <th className="sticky top-0 z-10 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-slate-600 w-[100px]">Cargo</th>
                 <th className="sticky top-0 z-10 bg-slate-800 p-3 text-center font-semibold text-slate-300 border-b border-slate-600 w-[120px]">Setor</th>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                   const { label, isWeekend } = getDayInfo(d);
@@ -216,7 +217,7 @@ function App() {
                     </th>
                   );
                 })}
-                <th className="sticky top-0 z-10 bg-slate-800 p-3 border-b border-slate-600">Action</th>
+                <th className="sticky right-0 top-0 z-30 bg-slate-800 p-3 border-b border-slate-600 w-[60px]"></th>
               </tr>
             </thead>
             <tbody>
@@ -226,6 +227,15 @@ function App() {
                   <td className="sticky left-[60px] z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-r border-slate-700 p-2 font-medium text-slate-200 shadow-[4px_0_8px_rgba(0,0,0,0.3)]">
                     {emp.name}
                   </td>
+                  <td className="border-b border-slate-700 p-2 text-slate-300 text-xs">
+                    <span className={`px-2 py-1 rounded-full bg-slate-700/50 border border-slate-600 ${
+                      emp.role === 'Supervisor' ? 'text-yellow-400 border-yellow-400/30' : 
+                      emp.role === 'Conferente' ? 'text-cyan-400 border-cyan-400/30' :
+                      'text-slate-300'
+                    }`}>
+                      {emp.role || 'Operador'}
+                    </span>
+                  </td>
                   <td className="border-b border-slate-700 p-2 text-center text-slate-400 text-xs">{emp.sector}</td>
                   
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
@@ -234,7 +244,6 @@ function App() {
                     const status = schedules[key];
                     const { isWeekend, isSunday } = getDayInfo(d);
                     
-                    // Determine display
                     let displayStatus = status;
                     let displayClass = '';
                     
@@ -242,7 +251,6 @@ function App() {
                       const sDef = STATUS_LIST.find(s => s.code === status);
                       displayClass = sDef ? `${sDef.color} ${sDef.textColor}` : '';
                     } else if (isSunday) {
-                      // Visual fallback for Sundays if no status explicitly set
                       displayClass = 'bg-purple-900/60 text-purple-200';
                       displayStatus = 'DOM';
                     } else if (isWeekend) {
@@ -260,13 +268,19 @@ function App() {
                     );
                   })}
                   
-                  <td className="border-b border-slate-700 p-2 text-center">
+                  <td className="sticky right-0 z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-slate-700 p-2 text-center">
                     <button 
                       onClick={() => handleDeleteEmployee(emp.id)}
-                      className="text-red-500/50 hover:text-red-500 p-1 rounded hover:bg-red-500/10 transition-colors"
+                      className="group/btn relative flex items-center justify-center w-8 h-8 rounded-full hover:bg-red-500/20 text-slate-500 hover:text-red-500 transition-all"
                       title="Excluir funcionário"
                     >
-                      ✕
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
                     </button>
                   </td>
                 </tr>
@@ -274,8 +288,8 @@ function App() {
               
               {filteredEmployees.length === 0 && (
                 <tr>
-                  <td colSpan={daysInMonth + 4} className="p-8 text-center text-slate-500 italic">
-                    Nenhum funcionário encontrado. Adicione um novo ou mude o filtro.
+                  <td colSpan={daysInMonth + 5} className="p-8 text-center text-slate-500 italic">
+                    Nenhum funcionário encontrado.
                   </td>
                 </tr>
               )}
@@ -307,7 +321,6 @@ function App() {
   );
 }
 
-// Simple Sub-component for Stats
 const StatCard = ({ title, value, icon, color }: { title: string, value: number, icon: string, color: string }) => (
   <div className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center gap-4 hover:bg-slate-800 transition-colors">
     <div className="text-3xl bg-slate-900/80 p-3 rounded-lg">{icon}</div>

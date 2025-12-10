@@ -3,6 +3,7 @@ export interface Employee {
   name: string;
   shift: string;
   sector: string;
+  role: string; // Campo novo para Cargo
 }
 
 export interface ScheduleEntry {
