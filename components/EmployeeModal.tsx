@@ -22,9 +22,15 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-slate-800 p-8 rounded-xl w-[90%] max-w-md border border-slate-600 shadow-2xl">
-        <h2 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm p-4">
+      <div className="bg-slate-800 p-6 md:p-8 rounded-xl w-full max-w-md border border-slate-600 shadow-2xl relative">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-slate-400 hover:text-white"
+        >
+          ✕
+        </button>
+        <h2 className="text-xl md:text-2xl font-bold mb-6 text-white flex items-center gap-2">
           <span>➕</span> Novo Funcionário
         </h2>
         

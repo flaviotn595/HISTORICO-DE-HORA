@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Employee, ScheduleEntry } from './types';
+import { Employee } from './types';
 import { STATUS_LIST, MONTHS, WEEK_DAYS } from './constants';
 import * as api from './services/api';
 import EmployeeModal from './components/EmployeeModal';
@@ -25,6 +25,12 @@ function App() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Constants for Table Layout
+  // COMPACT LAYOUT ADJUSTMENTS
+  const SHIFT_COL_WIDTH = 'w-[35px] min-w-[35px] md:w-[50px] md:min-w-[50px]';
+  const NAME_COL_WIDTH = 'w-[100px] min-w-[100px] md:w-[220px] md:min-w-[220px]'; // Reduced mobile width significantly
+  const STICKY_NAME_LEFT = 'left-[35px] md:left-[50px]'; // Matches SHIFT_COL_WIDTH
 
   // Load Data
   const loadData = useCallback(async () => {
@@ -227,44 +233,47 @@ function App() {
   }, [employees, searchTerm]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-green-500/30">
+    <div className="min-h-screen bg-slate-900 text-white font-sans selection:bg-green-500/30 pb-12 md:pb-0">
       
       {/* Background Gradient Mesh */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-900 to-slate-900 -z-10" />
 
-      <div className="w-full p-4 md:p-6 lg:p-8">
+      <div className="w-full p-1 md:p-6 lg:p-8">
         
         {/* Header */}
-        <header className="mb-6 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-2 drop-shadow-sm">
+        <header className="mb-3 md:mb-6 text-center pt-2">
+          <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-1 md:mb-2 drop-shadow-sm">
             📋 Sistema de Escala
           </h1>
-          <p className="text-slate-400 text-sm">Gerenciamento de Presença e Turnos</p>
+          <p className="text-slate-400 text-xs md:text-sm hidden md:block">Gerenciamento de Presença e Turnos</p>
         </header>
 
-        {/* Legend - Moved to Top */}
-        <div className="mb-8 flex flex-wrap justify-center gap-3 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-          {STATUS_LIST.slice(1).map(status => (
-            <div key={status.code} className="flex items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-slate-700/30">
-              <div className={`w-8 h-6 rounded flex items-center justify-center text-[10px] font-bold shadow-sm ${status.color} ${status.textColor}`}>
-                {status.code}
+        {/* Legend - Responsive Horizontal Scroll */}
+        <div className="mb-3 md:mb-8 bg-slate-800/40 p-2 md:p-4 rounded-xl border border-slate-700/50">
+          <div className="flex overflow-x-auto pb-2 gap-2 md:gap-3 md:justify-center no-scrollbar snap-x">
+            {STATUS_LIST.slice(1).map(status => (
+              <div key={status.code} className="flex-shrink-0 snap-start flex items-center gap-1.5 md:gap-2 bg-slate-900/50 p-1.5 md:p-2 rounded-lg border border-slate-700/30">
+                <div className={`w-6 h-5 md:w-8 md:h-6 rounded flex items-center justify-center text-[10px] font-bold shadow-sm ${status.color} ${status.textColor}`}>
+                  {status.code}
+                </div>
+                <span className="text-[10px] md:text-xs text-slate-300 font-medium whitespace-nowrap">{status.label}</span>
               </div>
-              <span className="text-xs text-slate-300 font-medium">{status.label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="md:hidden text-center text-[9px] text-slate-500 mt-1">Deslize para ver mais →</div>
         </div>
 
         {/* Statistics Cards - Clickable */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-2 md:gap-4 mb-3 md:mb-8">
           <StatCard 
-            title="Total Funcionários" 
+            title="Total" 
             value={stats.total} 
             icon="👥" 
             color="text-blue-400" 
             onClick={() => openStatsModal('TOTAL')}
           />
           <StatCard 
-            title="Presentes (Hoje)" 
+            title="Presentes" 
             value={stats.presentToday} 
             icon="✅" 
             color="text-green-400" 
@@ -280,68 +289,70 @@ function App() {
         </div>
 
         {/* Controls Bar */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-3 md:mb-6 bg-slate-800/50 p-2 md:p-4 rounded-xl border border-slate-700/50 backdrop-blur-sm">
           <div className="flex-1 relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
             <input 
               type="text" 
-              placeholder="Buscar por nome, turno ou setor..." 
-              className="w-full bg-slate-700/50 border-none rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+              placeholder="Buscar..." 
+              className="w-full bg-slate-700/50 border-none rounded-lg py-2 md:py-2.5 pl-9 md:pl-10 pr-4 text-sm md:text-base text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
-          <div className="flex items-center justify-between md:justify-center gap-4 bg-slate-700/30 rounded-lg p-1">
-            <button onClick={() => handleMonthChange(-1)} className="p-2 hover:bg-slate-600 rounded-md transition-colors">◀</button>
-            <span className="min-w-[140px] text-center font-bold text-lg text-slate-200">
-              {MONTHS[month]} {year}
+          <div className="flex items-center justify-between md:justify-center gap-2 md:gap-4 bg-slate-700/30 rounded-lg p-1">
+            <button onClick={() => handleMonthChange(-1)} className="p-2 hover:bg-slate-600 rounded-md transition-colors w-10 text-center">◀</button>
+            <span className="flex-1 md:flex-none text-center font-bold text-sm md:text-lg text-slate-200 uppercase md:normal-case min-w-[100px]">
+              {MONTHS[month]} <span className="text-slate-400">{year}</span>
             </span>
-            <button onClick={() => handleMonthChange(1)} className="p-2 hover:bg-slate-600 rounded-md transition-colors">▶</button>
+            <button onClick={() => handleMonthChange(1)} className="p-2 hover:bg-slate-600 rounded-md transition-colors w-10 text-center">▶</button>
           </div>
 
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-green-600 hover:bg-green-500 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-lg shadow-green-900/20 flex items-center justify-center gap-2"
+            className="bg-green-600 hover:bg-green-500 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-lg shadow-green-900/20 flex items-center justify-center gap-2"
           >
-            <span>➕</span> <span className="hidden md:inline">Novo</span>
+            <span>➕</span> <span>Novo</span>
           </button>
         </div>
 
         {/* Main Table */}
-        <div className="relative overflow-x-auto rounded-xl border border-slate-700 shadow-2xl bg-slate-800/30 backdrop-blur-sm">
+        <div className="relative overflow-x-auto rounded-xl border border-slate-700 shadow-2xl bg-slate-800/30 backdrop-blur-sm min-h-[400px]">
           {isLoading && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
             </div>
           )}
 
-          <table className="w-full text-xs md:text-sm border-collapse min-w-[1500px]">
+          <table className="w-full text-xs md:text-sm border-collapse">
             <thead>
               <tr>
-                <th className="sticky left-0 z-30 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-slate-600 w-[60px]">Turno</th>
-                <th className="sticky left-[60px] z-30 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-r border-slate-600 w-[220px] shadow-[4px_0_8px_rgba(0,0,0,0.3)]">Nome</th>
-                <th className="sticky top-0 z-10 bg-slate-800 p-3 text-center font-semibold text-slate-300 border-b border-slate-600 w-[120px]">Setor</th>
+                <th className={`sticky left-0 z-30 bg-slate-800 p-1 md:p-3 text-center font-semibold text-slate-300 border-b border-slate-600 ${SHIFT_COL_WIDTH}`}>T</th>
+                <th className={`sticky ${STICKY_NAME_LEFT} z-30 bg-slate-800 p-2 md:p-3 text-left font-semibold text-slate-300 border-b border-r border-slate-600 ${NAME_COL_WIDTH} shadow-[4px_0_8px_rgba(0,0,0,0.3)]`}>Nome</th>
+                <th className="hidden md:table-cell sticky top-0 z-10 bg-slate-800 p-3 text-center font-semibold text-slate-300 border-b border-slate-600 w-[120px]">Setor</th>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                   const { label, isWeekend } = getDayInfo(d);
                   return (
-                    <th key={d} className={`sticky top-0 z-10 p-2 border-b border-slate-600 border-l border-slate-700/50 min-w-[45px] ${isWeekend ? 'bg-purple-900/30' : 'bg-slate-800'}`}>
-                      <div className="text-slate-400 text-[10px] font-bold">{label}</div>
-                      <div className="text-white font-bold">{d}</div>
+                    <th key={d} className={`sticky top-0 z-10 p-1 md:p-2 border-b border-slate-600 border-l border-slate-700/50 min-w-[32px] md:min-w-[45px] ${isWeekend ? 'bg-purple-900/30' : 'bg-slate-800'}`}>
+                      <div className="text-slate-400 text-[8px] md:text-[10px] font-bold uppercase">{label}</div>
+                      <div className="text-white font-bold text-xs md:text-sm">{d}</div>
                     </th>
                   );
                 })}
-                <th className="sticky right-0 top-0 z-30 bg-slate-800 p-3 border-b border-slate-600 w-[60px]"></th>
+                <th className="sticky right-0 top-0 z-30 bg-slate-800 p-2 border-b border-slate-600 min-w-[30px] md:min-w-[40px]"></th>
               </tr>
             </thead>
             <tbody>
               {filteredEmployees.map((emp) => (
                 <tr key={emp.id} className="hover:bg-slate-700/40 transition-colors group">
-                  <td className="sticky left-0 z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-slate-700 p-2 text-center font-mono text-slate-400">{emp.shift}</td>
-                  <td className="sticky left-[60px] z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-r border-slate-700 p-2 font-medium text-slate-200 shadow-[4px_0_8px_rgba(0,0,0,0.3)]">
-                    {emp.name}
+                  <td className={`sticky left-0 z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-slate-700 p-1 text-center font-mono text-[10px] md:text-sm text-slate-400 ${SHIFT_COL_WIDTH}`}>{emp.shift}</td>
+                  <td className={`sticky ${STICKY_NAME_LEFT} z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-r border-slate-700 p-1 md:p-2 font-medium text-slate-200 shadow-[4px_0_8px_rgba(0,0,0,0.3)] ${NAME_COL_WIDTH}`}>
+                    <div className="whitespace-normal line-clamp-2 w-full text-[10px] md:text-sm leading-tight" title={emp.name}>
+                      {emp.name}
+                    </div>
                   </td>
-                  <td className="border-b border-slate-700 p-2 text-center text-slate-400 text-xs">{emp.sector}</td>
+                  <td className="hidden md:table-cell border-b border-slate-700 p-2 text-center text-slate-400 text-xs truncate max-w-[120px]">{emp.sector}</td>
                   
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -373,13 +384,13 @@ function App() {
                     );
                   })}
                   
-                  <td className="sticky right-0 z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-slate-700 p-2 text-center">
+                  <td className="sticky right-0 z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-slate-700 p-1 text-center">
                     <button 
                       onClick={() => handleDeleteEmployee(emp.id)}
-                      className="group/btn relative flex items-center justify-center w-8 h-8 rounded-full hover:bg-red-500/20 text-slate-500 hover:text-red-500 transition-all"
+                      className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full hover:bg-red-500/20 text-slate-600 hover:text-red-500 transition-all mx-auto"
                       title="Excluir funcionário"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 6h18"></path>
                         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -401,7 +412,6 @@ function App() {
             </tbody>
           </table>
         </div>
-
       </div>
 
       <EmployeeModal 
@@ -426,12 +436,12 @@ function App() {
 const StatCard = ({ title, value, icon, color, onClick }: { title: string, value: number, icon: string, color: string, onClick?: () => void }) => (
   <div 
     onClick={onClick}
-    className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center gap-4 hover:bg-slate-800 hover:scale-[1.02] transition-all cursor-pointer shadow-lg hover:shadow-xl"
+    className="bg-slate-800/60 border border-slate-700 p-2 md:p-4 rounded-xl flex flex-col md:flex-row items-center md:items-start justify-center md:justify-start gap-1 md:gap-4 hover:bg-slate-800 hover:scale-[1.02] transition-all cursor-pointer shadow-lg active:scale-95 touch-manipulation h-full"
   >
-    <div className="text-3xl bg-slate-900/80 p-3 rounded-lg">{icon}</div>
-    <div>
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="text-slate-400 text-xs uppercase tracking-wider font-semibold">{title}</div>
+    <div className="text-xl md:text-3xl bg-slate-900/80 p-2 md:p-3 rounded-lg">{icon}</div>
+    <div className="text-center md:text-left">
+      <div className={`text-lg md:text-2xl font-bold ${color}`}>{value}</div>
+      <div className="text-slate-400 text-[9px] md:text-xs uppercase tracking-wider font-semibold leading-tight">{title}</div>
     </div>
   </div>
 );
