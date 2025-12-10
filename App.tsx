@@ -55,13 +55,12 @@ function App() {
   }, [loadData]);
 
   // Actions
-  const handleAddEmployee = async (name: string, shift: string, sector: string, role: string) => {
+  const handleAddEmployee = async (name: string, shift: string, sector: string) => {
     setIsSaving(true);
     const newEmp = await api.createEmployee({ 
       name: name.toUpperCase(), 
       shift, 
-      sector: sector.toUpperCase(),
-      role: role 
+      sector: sector.toUpperCase()
     });
     if (newEmp) {
       setEmployees(prev => [...prev, newEmp]);
@@ -150,7 +149,6 @@ function App() {
         data = employees.map(emp => ({
           id: emp.id,
           name: emp.name,
-          role: emp.role,
           detail: `${emp.sector} - ${emp.shift}`,
           highlight: false
         }));
@@ -163,7 +161,6 @@ function App() {
           .map(emp => ({
             id: emp.id,
             name: emp.name,
-            role: emp.role,
             detail: 'Presente',
             highlight: false
           }));
@@ -185,7 +182,6 @@ function App() {
           .map(item => ({
             id: item.emp.id,
             name: item.emp.name,
-            role: item.emp.role,
             detail: `${item.count} Falta(s)`,
             highlight: true
           }));
@@ -207,8 +203,7 @@ function App() {
     return employees.filter(e => 
       e.name.toLowerCase().includes(lowerTerm) ||
       e.sector.toLowerCase().includes(lowerTerm) ||
-      e.shift.toLowerCase().includes(lowerTerm) ||
-      (e.role && e.role.toLowerCase().includes(lowerTerm))
+      e.shift.toLowerCase().includes(lowerTerm)
     );
   }, [employees, searchTerm]);
 
@@ -259,7 +254,7 @@ function App() {
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
             <input 
               type="text" 
-              placeholder="Buscar por nome, cargo, turno ou setor..." 
+              placeholder="Buscar por nome, turno ou setor..." 
               className="w-full bg-slate-700/50 border-none rounded-lg py-2.5 pl-10 pr-4 text-white focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -295,7 +290,6 @@ function App() {
               <tr>
                 <th className="sticky left-0 z-30 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-slate-600 w-[60px]">Turno</th>
                 <th className="sticky left-[60px] z-30 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-r border-slate-600 w-[220px] shadow-[4px_0_8px_rgba(0,0,0,0.3)]">Nome</th>
-                <th className="sticky top-0 z-10 bg-slate-800 p-3 text-left font-semibold text-slate-300 border-b border-slate-600 w-[100px]">Cargo</th>
                 <th className="sticky top-0 z-10 bg-slate-800 p-3 text-center font-semibold text-slate-300 border-b border-slate-600 w-[120px]">Setor</th>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                   const { label, isWeekend } = getDayInfo(d);
@@ -315,15 +309,6 @@ function App() {
                   <td className="sticky left-0 z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-slate-700 p-2 text-center font-mono text-slate-400">{emp.shift}</td>
                   <td className="sticky left-[60px] z-20 bg-slate-900 group-hover:bg-slate-800 border-b border-r border-slate-700 p-2 font-medium text-slate-200 shadow-[4px_0_8px_rgba(0,0,0,0.3)]">
                     {emp.name}
-                  </td>
-                  <td className="border-b border-slate-700 p-2 text-slate-300 text-xs">
-                    <span className={`px-2 py-1 rounded-full bg-slate-700/50 border border-slate-600 ${
-                      emp.role === 'Supervisor' ? 'text-yellow-400 border-yellow-400/30' : 
-                      emp.role === 'Conferente' ? 'text-cyan-400 border-cyan-400/30' :
-                      'text-slate-300'
-                    }`}>
-                      {emp.role || 'Operador'}
-                    </span>
                   </td>
                   <td className="border-b border-slate-700 p-2 text-center text-slate-400 text-xs">{emp.sector}</td>
                   
@@ -377,7 +362,7 @@ function App() {
               
               {filteredEmployees.length === 0 && (
                 <tr>
-                  <td colSpan={daysInMonth + 5} className="p-8 text-center text-slate-500 italic">
+                  <td colSpan={daysInMonth + 4} className="p-8 text-center text-slate-500 italic">
                     Nenhum funcionário encontrado.
                   </td>
                 </tr>

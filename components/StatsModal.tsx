@@ -3,7 +3,6 @@ import React from 'react';
 export interface StatItem {
   id: number;
   name: string;
-  role: string;
   detail: string; // Ex: "3 Faltas" ou "Turno 2ª"
   highlight?: boolean;
 }
@@ -52,9 +51,6 @@ const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, title, icon, d
                 >
                   <div className="flex flex-col">
                     <span className="font-semibold text-slate-200 text-lg">{item.name}</span>
-                    <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded w-fit mt-1">
-                      {item.role || 'Operador'}
-                    </span>
                   </div>
                   
                   <div className={`font-bold px-4 py-2 rounded-lg text-sm ${

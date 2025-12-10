@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 interface EmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, shift: string, sector: string, role: string) => void;
+  onSave: (name: string, shift: string, sector: string) => void;
   isLoading: boolean;
 }
 
@@ -11,16 +11,14 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
   const [name, setName] = useState('');
   const [shift, setShift] = useState('2ª');
   const [sector, setSector] = useState('RECEBIMENTO');
-  const [role, setRole] = useState('Operador');
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
     if (!name.trim()) return;
-    onSave(name, shift, sector, role);
+    onSave(name, shift, sector);
     setName('');
     setShift('2ª');
-    setRole('Operador');
   };
 
   return (
@@ -42,35 +40,19 @@ const EmployeeModal: React.FC<EmployeeModalProps> = ({ isOpen, onClose, onSave, 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-300 mb-1 text-sm font-medium">Turno</label>
-              <select
-                value={shift}
-                onChange={(e) => setShift(e.target.value)}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-green-500 outline-none"
-              >
-                <option value="1ª">1ª Turno</option>
-                <option value="2ª">2ª Turno</option>
-                <option value="3ª">3ª Turno</option>
-                <option value="4ª">4ª Turno</option>
-                <option value="ADM">Administrativo</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-300 mb-1 text-sm font-medium">Cargo</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-green-500 outline-none"
-              >
-                <option value="Operador">Operador</option>
-                <option value="Conferente">Conferente</option>
-                <option value="Assistente">Assistente</option>
-                <option value="Supervisor">Supervisor</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-slate-300 mb-1 text-sm font-medium">Turno</label>
+            <select
+              value={shift}
+              onChange={(e) => setShift(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-green-500 outline-none"
+            >
+              <option value="1ª">1ª Turno</option>
+              <option value="2ª">2ª Turno</option>
+              <option value="3ª">3ª Turno</option>
+              <option value="4ª">4ª Turno</option>
+              <option value="ADM">Administrativo</option>
+            </select>
           </div>
 
           <div>
