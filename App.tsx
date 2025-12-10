@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Employee } from './types';
 import { STATUS_LIST, MONTHS, WEEK_DAYS } from './constants';
 import * as api from './services/api';
@@ -20,6 +20,9 @@ function App() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Refs
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Derived State helpers
   const year = currentDate.getFullYear();
@@ -60,6 +63,31 @@ function App() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Auto-scroll to current day logic
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Small timeout to ensure DOM is fully rendered after loading data
+    const timer = setTimeout(() => {
+      const today = new Date();
+      // Only scroll if we are viewing the current month and year
+      if (today.getMonth() === month && today.getFullYear() === year) {
+        const dayId = `day-header-${today.getDate()}`;
+        const element = document.getElementById(dayId);
+        
+        if (element && tableContainerRef.current) {
+          // Scroll the element into view, centered horizontally
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      } else if (tableContainerRef.current) {
+        // If viewing another month, reset scroll to start
+        tableContainerRef.current.scrollLeft = 0;
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [isLoading, month, year]);
 
   // Actions
   const handleAddEmployee = async (name: string, shift: string, sector: string) => {
@@ -318,7 +346,10 @@ function App() {
         </div>
 
         {/* Main Table */}
-        <div className="relative overflow-x-auto rounded-xl border border-slate-700 shadow-2xl bg-slate-800/30 backdrop-blur-sm min-h-[400px]">
+        <div 
+          ref={tableContainerRef} 
+          className="relative overflow-x-auto rounded-xl border border-slate-700 shadow-2xl bg-slate-800/30 backdrop-blur-sm min-h-[400px]"
+        >
           {isLoading && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
@@ -334,7 +365,11 @@ function App() {
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
                   const { label, isWeekend } = getDayInfo(d);
                   return (
-                    <th key={d} className={`sticky top-0 z-10 p-1 md:p-2 border-b border-slate-600 border-l border-slate-700/50 min-w-[32px] md:min-w-[45px] ${isWeekend ? 'bg-purple-900/30' : 'bg-slate-800'}`}>
+                    <th 
+                      key={d} 
+                      id={`day-header-${d}`}
+                      className={`sticky top-0 z-10 p-1 md:p-2 border-b border-slate-600 border-l border-slate-700/50 min-w-[32px] md:min-w-[45px] ${isWeekend ? 'bg-purple-900/30' : 'bg-slate-800'}`}
+                    >
                       <div className="text-slate-400 text-[8px] md:text-[10px] font-bold uppercase">{label}</div>
                       <div className="text-white font-bold text-xs md:text-sm">{d}</div>
                     </th>
