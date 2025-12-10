@@ -3,6 +3,7 @@ import { Employee, ScheduleEntry } from './types';
 import { STATUS_LIST, MONTHS, WEEK_DAYS } from './constants';
 import * as api from './services/api';
 import EmployeeModal from './components/EmployeeModal';
+import StatsModal, { StatItem } from './components/StatsModal';
 
 function App() {
   // State
@@ -10,7 +11,12 @@ function App() {
   const [schedules, setSchedules] = useState<Record<string, string>>({}); // Key: "empId-YYYY-MM-DD"
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modals State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const [activeStatType, setActiveStatType] = useState<'TOTAL' | 'PRESENT' | 'ABSENT' | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -110,7 +116,7 @@ function App() {
     return { label: WEEK_DAYS[dayOfWeekIdx], isWeekend, isSunday };
   }, [year, month]);
 
-  // Statistics
+  // Statistics Calculation
   const stats = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     let presentToday = 0;
@@ -130,7 +136,72 @@ function App() {
     return { total: employees.length, presentToday, absencesMonth };
   }, [employees, schedules, daysInMonth, year, month]);
 
-  // Filtering
+  // Generate Data for Stats Modal
+  const getModalStatsData = (): { title: string; icon: string; data: StatItem[] } => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    let title = '';
+    let icon = '';
+    let data: StatItem[] = [];
+
+    switch (activeStatType) {
+      case 'TOTAL':
+        title = 'Todos os Funcionários';
+        icon = '👥';
+        data = employees.map(emp => ({
+          id: emp.id,
+          name: emp.name,
+          role: emp.role,
+          detail: `${emp.sector} - ${emp.shift}`,
+          highlight: false
+        }));
+        break;
+      case 'PRESENT':
+        title = `Presentes Hoje (${new Date().toLocaleDateString('pt-BR')})`;
+        icon = '✅';
+        data = employees
+          .filter(emp => schedules[`${emp.id}-${todayStr}`] === 'P')
+          .map(emp => ({
+            id: emp.id,
+            name: emp.name,
+            role: emp.role,
+            detail: 'Presente',
+            highlight: false
+          }));
+        break;
+      case 'ABSENT':
+        title = `Faltas em ${MONTHS[month]}`;
+        icon = '❌';
+        data = employees
+          .map(emp => {
+            let count = 0;
+            for (let d = 1; d <= daysInMonth; d++) {
+              const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              if (schedules[`${emp.id}-${dStr}`] === 'X') count++;
+            }
+            return { emp, count };
+          })
+          .filter(item => item.count > 0)
+          .sort((a, b) => b.count - a.count)
+          .map(item => ({
+            id: item.emp.id,
+            name: item.emp.name,
+            role: item.emp.role,
+            detail: `${item.count} Falta(s)`,
+            highlight: true
+          }));
+        break;
+    }
+    return { title, icon, data };
+  };
+
+  const openStatsModal = (type: 'TOTAL' | 'PRESENT' | 'ABSENT') => {
+    setActiveStatType(type);
+    setIsStatsModalOpen(true);
+  };
+
+  const modalData = getModalStatsData();
+
+  // Filtering for Main Table
   const filteredEmployees = useMemo(() => {
     const lowerTerm = searchTerm.toLowerCase();
     return employees.filter(e => 
@@ -157,11 +228,29 @@ function App() {
           <p className="text-slate-400 text-sm">Gerenciamento de Presença e Turnos</p>
         </header>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards - Clickable */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <StatCard title="Total Funcionários" value={stats.total} icon="👥" color="text-blue-400" />
-          <StatCard title="Presentes (Hoje)" value={stats.presentToday} icon="✅" color="text-green-400" />
-          <StatCard title="Faltas (Mês)" value={stats.absencesMonth} icon="❌" color="text-red-400" />
+          <StatCard 
+            title="Total Funcionários" 
+            value={stats.total} 
+            icon="👥" 
+            color="text-blue-400" 
+            onClick={() => openStatsModal('TOTAL')}
+          />
+          <StatCard 
+            title="Presentes (Hoje)" 
+            value={stats.presentToday} 
+            icon="✅" 
+            color="text-green-400" 
+            onClick={() => openStatsModal('PRESENT')}
+          />
+          <StatCard 
+            title="Faltas (Mês)" 
+            value={stats.absencesMonth} 
+            icon="❌" 
+            color="text-red-400" 
+            onClick={() => openStatsModal('ABSENT')}
+          />
         </div>
 
         {/* Controls Bar */}
@@ -317,12 +406,24 @@ function App() {
         onSave={handleAddEmployee}
         isLoading={isSaving}
       />
+
+      {/* Stats Detail Modal */}
+      <StatsModal 
+        isOpen={isStatsModalOpen}
+        onClose={() => setIsStatsModalOpen(false)}
+        title={modalData.title}
+        icon={modalData.icon}
+        data={modalData.data}
+      />
     </div>
   );
 }
 
-const StatCard = ({ title, value, icon, color }: { title: string, value: number, icon: string, color: string }) => (
-  <div className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center gap-4 hover:bg-slate-800 transition-colors">
+const StatCard = ({ title, value, icon, color, onClick }: { title: string, value: number, icon: string, color: string, onClick?: () => void }) => (
+  <div 
+    onClick={onClick}
+    className="bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center gap-4 hover:bg-slate-800 hover:scale-[1.02] transition-all cursor-pointer shadow-lg hover:shadow-xl"
+  >
     <div className="text-3xl bg-slate-900/80 p-3 rounded-lg">{icon}</div>
     <div>
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
