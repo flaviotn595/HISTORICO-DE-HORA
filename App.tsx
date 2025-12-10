@@ -4,6 +4,7 @@ import { STATUS_LIST, MONTHS, WEEK_DAYS } from './constants';
 import * as api from './services/api';
 import EmployeeModal from './components/EmployeeModal';
 import StatsModal, { StatItem } from './components/StatsModal';
+import ScheduleCell from './components/ScheduleCell';
 
 function App() {
   // State
@@ -103,6 +104,24 @@ function App() {
       employee_id: empId,
       date: dateStr,
       status: nextStatus
+    });
+  };
+
+  const handleStatusReset = async (empId: number, day: number) => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const key = `${empId}-${dateStr}`;
+
+    // Don't do anything if already empty
+    if (!schedules[key]) return;
+
+    // Optimistic Update (Set to empty string)
+    setSchedules(prev => ({ ...prev, [key]: '' }));
+
+    // API Call
+    await api.upsertSchedule({
+      employee_id: empId,
+      date: dateStr,
+      status: ''
     });
   };
 
@@ -216,12 +235,24 @@ function App() {
       <div className="w-full p-4 md:p-6 lg:p-8">
         
         {/* Header */}
-        <header className="mb-8 text-center">
+        <header className="mb-6 text-center">
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-2 drop-shadow-sm">
             📋 Sistema de Escala
           </h1>
           <p className="text-slate-400 text-sm">Gerenciamento de Presença e Turnos</p>
         </header>
+
+        {/* Legend - Moved to Top */}
+        <div className="mb-8 flex flex-wrap justify-center gap-3 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+          {STATUS_LIST.slice(1).map(status => (
+            <div key={status.code} className="flex items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-slate-700/30">
+              <div className={`w-8 h-6 rounded flex items-center justify-center text-[10px] font-bold shadow-sm ${status.color} ${status.textColor}`}>
+                {status.code}
+              </div>
+              <span className="text-xs text-slate-300 font-medium">{status.label}</span>
+            </div>
+          ))}
+        </div>
 
         {/* Statistics Cards - Clickable */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -332,13 +363,13 @@ function App() {
                     }
 
                     return (
-                      <td 
-                        key={d} 
-                        onClick={() => handleStatusCycle(emp.id, d)}
-                        className={`border-b border-l border-slate-700/50 p-1 text-center cursor-pointer transition-all hover:brightness-110 active:scale-95 select-none text-[11px] font-bold ${displayClass}`}
-                      >
-                        {displayStatus || '-'}
-                      </td>
+                      <ScheduleCell 
+                        key={d}
+                        displayStatus={displayStatus}
+                        displayClass={displayClass}
+                        onCycle={() => handleStatusCycle(emp.id, d)}
+                        onReset={() => handleStatusReset(emp.id, d)}
+                      />
                     );
                   })}
                   
@@ -369,18 +400,6 @@ function App() {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Legend */}
-        <div className="mt-8 flex flex-wrap gap-3 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-          {STATUS_LIST.slice(1).map(status => (
-            <div key={status.code} className="flex items-center gap-2 bg-slate-900/50 p-2 rounded-lg border border-slate-700/30">
-              <div className={`w-8 h-6 rounded flex items-center justify-center text-[10px] font-bold shadow-sm ${status.color} ${status.textColor}`}>
-                {status.code}
-              </div>
-              <span className="text-xs text-slate-300 font-medium">{status.label}</span>
-            </div>
-          ))}
         </div>
 
       </div>
