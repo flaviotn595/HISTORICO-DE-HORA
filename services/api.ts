@@ -42,10 +42,10 @@ export const deleteEmployee = async (id: number): Promise<boolean> => {
 };
 
 export const fetchSchedules = async (year: number, month: number): Promise<ScheduleEntry[]> => {
-  // Construct date range for the query
+  // Ajuste fino nas datas de início e fim para a query
   const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month + 1, 0).getDate();
-  const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
+  const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
   const { data, error } = await supabase
     .from('schedules')
