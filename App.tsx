@@ -3,16 +3,21 @@ import { Employee } from './types';
 import { STATUS_LIST, MONTHS, WEEK_DAYS } from './constants';
 import * as api from './services/api';
 import EmployeeModal from './components/EmployeeModal';
-import StatsModal, { StatItem } from './components/StatsModal';
 import ScheduleCell from './components/ScheduleCell';
 import ReportModal from './components/ReportModal';
+import Login from './components/Login';
+import AdminPanel from './components/AdminPanel';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-function App() {
+function AppContent() {
+  const { supervisor, signOut, loading: authLoading } = useAuth();
+  const [view, setView] = useState<'dashboard' | 'admin'>('dashboard');
+
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [schedules, setSchedules] = useState<Record<string, string>>({}); 
+  const [schedules, setSchedules] = useState<Record<string, string>>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
@@ -26,15 +31,16 @@ function App() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const SHIFT_COL_WIDTH = 'w-[30px] min-w-[30px] md:w-[50px] md:min-w-[50px]';
-  const NAME_COL_WIDTH = 'w-[85px] min-w-[85px] md:w-[200px] md:min-w-[200px]'; 
+  const NAME_COL_WIDTH = 'w-[85px] min-w-[85px] md:w-[200px] md:min-w-[200px]';
   const STICKY_NAME_LEFT = 'left-[30px] md:left-[50px]';
 
   const loadData = useCallback(async () => {
+    if (!supervisor) return;
     setIsLoading(true);
     try {
       const [emps, scheds] = await Promise.all([
-        api.fetchEmployees(),
-        api.fetchSchedules(year, month)
+        api.fetchEmployees(supervisor.id),
+        api.fetchSchedules(year, month, supervisor.id)
       ]);
 
       setEmployees(emps);
@@ -53,15 +59,21 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [year, month]);
+  }, [year, month, supervisor]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (supervisor) {
+      loadData();
+    }
+  }, [loadData, supervisor]);
 
   const handleAddEmployee = async (name: string, shift: string, sector: string) => {
+    if (!supervisor) return;
     setIsSaving(true);
-    const newEmp = await api.createEmployee({ name: name.toUpperCase(), shift, sector: sector.toUpperCase() });
+    const newEmp = await api.createEmployee(
+      { name: name.toUpperCase(), shift, sector: sector.toUpperCase() },
+      supervisor.id
+    );
     if (newEmp) {
       setEmployees(prev => [...prev, newEmp]);
       setIsModalOpen(false);
@@ -76,6 +88,7 @@ function App() {
   };
 
   const handleStatusCycle = async (empId: number, day: number) => {
+    if (!supervisor) return;
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const key = `${empId}-${dateStr}`;
     const currentStatus = schedules[key] || '';
@@ -84,15 +97,16 @@ function App() {
     const nextStatus = STATUS_LIST[nextIndex].code;
 
     setSchedules(prev => ({ ...prev, [key]: nextStatus }));
-    await api.upsertSchedule({ employee_id: empId, date: dateStr, status: nextStatus });
+    await api.upsertSchedule({ employee_id: empId, date: dateStr, status: nextStatus }, supervisor.id);
   };
 
   const handleStatusReset = async (empId: number, day: number) => {
+    if (!supervisor) return;
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const key = `${empId}-${dateStr}`;
     if (!schedules[key]) return;
     setSchedules(prev => ({ ...prev, [key]: '' }));
-    await api.upsertSchedule({ employee_id: empId, date: dateStr, status: '' });
+    await api.upsertSchedule({ employee_id: empId, date: dateStr, status: '' }, supervisor.id);
   };
 
   const getDayInfo = useCallback((d: number) => {
@@ -122,13 +136,38 @@ function App() {
     return employees.filter(e => e.name.toLowerCase().includes(term) || e.sector.toLowerCase().includes(term));
   }, [employees, searchTerm]);
 
+  if (authLoading) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Carregando...</div>;
+  if (!supervisor) return <Login />;
+
+  if (view === 'admin') {
+    return <AdminPanel onBack={() => setView('dashboard')} supervisorId={supervisor.id} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-white selection:bg-green-500/30">
       <div className="w-full p-2 md:p-6 lg:p-8">
-        <header className="mb-4 text-center">
+        <header className="mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <h1 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
             CONTROLE DE ESCALA
           </h1>
+          <div className="flex items-center gap-4 bg-slate-800 p-2 rounded-xl border border-slate-700">
+            <div className="text-xs md:text-sm text-slate-400 px-2">
+              👤 {supervisor.email}
+            </div>
+            <button
+              onClick={() => setView('admin')}
+              className="p-2 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors"
+              title="Painel Admin"
+            >
+              ⚙️
+            </button>
+            <button
+              onClick={signOut}
+              className="p-2 hover:bg-red-900/30 text-red-400 hover:text-red-300 rounded-lg transition-colors text-xs font-bold uppercase"
+            >
+              Sair
+            </button>
+          </div>
         </header>
 
         <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4">
@@ -138,8 +177,8 @@ function App() {
         </div>
 
         <div className="flex flex-col md:flex-row gap-2 mb-4">
-          <input 
-            type="text" placeholder="Buscar funcionário..." 
+          <input
+            type="text" placeholder="Buscar funcionário..."
             className="flex-1 bg-slate-800 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -211,13 +250,13 @@ function App() {
       </div>
 
       <EmployeeModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleAddEmployee} isLoading={isSaving} />
-      <ReportModal 
-        isOpen={isReportModalOpen} 
-        onClose={() => setIsReportModalOpen(false)} 
-        employees={employees} 
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        employees={employees}
         initialSchedules={schedules}
-        initialMonth={month} 
-        initialYear={year} 
+        initialMonth={month}
+        initialYear={year}
       />
     </div>
   );
@@ -231,4 +270,10 @@ const StatCard = ({ title, value, icon, color }: any) => (
   </div>
 );
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}

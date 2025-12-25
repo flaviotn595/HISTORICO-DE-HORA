@@ -22,3 +22,9 @@ export interface DateContext {
   year: number;
   month: number; // 0-11
 }
+
+export interface Supervisor {
+  id: number;
+  email: string;
+  name: string | null;
+}

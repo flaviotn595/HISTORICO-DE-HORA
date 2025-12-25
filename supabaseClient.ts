@@ -19,7 +19,7 @@ const getEnvVar = (key: string) => {
   return undefined;
 };
 
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL') || PROVIDED_URL;
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY') || PROVIDED_KEY;
+export const supabaseUrl = getEnvVar('VITE_SUPABASE_URL') || PROVIDED_URL;
+export const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY') || PROVIDED_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

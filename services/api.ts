@@ -1,12 +1,13 @@
 import { supabase } from '../supabaseClient';
 import { Employee, ScheduleEntry } from '../types';
 
-export const fetchEmployees = async (): Promise<Employee[]> => {
+export const fetchEmployees = async (supervisorId: number): Promise<Employee[]> => {
   const { data, error } = await supabase
     .from('employees')
     .select('*')
+    .eq('supervisor_id', supervisorId)
     .order('name');
-  
+
   if (error) {
     console.error('Error fetching employees:', error);
     return [];
@@ -14,10 +15,10 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
   return data || [];
 };
 
-export const createEmployee = async (employee: Omit<Employee, 'id'>): Promise<Employee | null> => {
+export const createEmployee = async (employee: Omit<Employee, 'id'>, supervisorId: number): Promise<Employee | null> => {
   const { data, error } = await supabase
     .from('employees')
-    .insert([employee])
+    .insert([{ ...employee, supervisor_id: supervisorId }])
     .select()
     .single();
 
@@ -41,8 +42,7 @@ export const deleteEmployee = async (id: number): Promise<boolean> => {
   return true;
 };
 
-export const fetchSchedules = async (year: number, month: number): Promise<ScheduleEntry[]> => {
-  // Ajuste fino nas datas de início e fim para a query
+export const fetchSchedules = async (year: number, month: number, supervisorId: number): Promise<ScheduleEntry[]> => {
   const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month + 1, 0).getDate();
   const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
@@ -50,6 +50,7 @@ export const fetchSchedules = async (year: number, month: number): Promise<Sched
   const { data, error } = await supabase
     .from('schedules')
     .select('employee_id, date, status')
+    .eq('supervisor_id', supervisorId)
     .gte('date', startDate)
     .lte('date', endDate);
 
@@ -60,10 +61,10 @@ export const fetchSchedules = async (year: number, month: number): Promise<Sched
   return data || [];
 };
 
-export const upsertSchedule = async (entry: ScheduleEntry): Promise<boolean> => {
+export const upsertSchedule = async (entry: ScheduleEntry, supervisorId: number): Promise<boolean> => {
   const { error } = await supabase
     .from('schedules')
-    .upsert(entry, { onConflict: 'employee_id, date' });
+    .upsert({ ...entry, supervisor_id: supervisorId }, { onConflict: 'employee_id, date' });
 
   if (error) {
     console.error('Error updating schedule:', error);
